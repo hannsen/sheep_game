@@ -161,7 +161,7 @@
             }
 
             update(keys, delta) {
-                const speed = 8;
+                const speed = 35;
                 const rotationSpeed = 3;
 
                 // Rotation
@@ -174,13 +174,13 @@
 
                 // Forward/backward movement
                 if (keys['KeyW'] || keys['ArrowUp']) {
-                    this.velocity.x -= Math.sin(this.group.rotation.y) * speed * delta;
-                    this.velocity.z -= Math.cos(this.group.rotation.y) * speed * delta;
+                    this.velocity.x += Math.sin(this.group.rotation.y) * speed * delta;
+                    this.velocity.z += Math.cos(this.group.rotation.y) * speed * delta;
                     this.animateLegs(delta);
                 }
                 if (keys['KeyS'] || keys['ArrowDown']) {
-                    this.velocity.x += Math.sin(this.group.rotation.y) * speed * delta;
-                    this.velocity.z += Math.cos(this.group.rotation.y) * speed * delta;
+                    this.velocity.x -= Math.sin(this.group.rotation.y) * speed * delta;
+                    this.velocity.z -= Math.cos(this.group.rotation.y) * speed * delta;
                     this.animateLegs(delta);
                 }
 
@@ -362,6 +362,8 @@
 
         // Animation loop
         const clock = new THREE.Clock();
+        let cameraRotation = 0;
+
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
@@ -369,11 +371,16 @@
             // Update sheep
             sheep.update(keys, delta);
 
-            // Camera follows sheep
-            const targetPosition = sheep.group.position.clone();
-            targetPosition.y += 8;
-            targetPosition.z += 15;
-            camera.position.lerp(targetPosition, 0.1);
+            // Camera follows sheep with lag on rotation
+            cameraRotation += (sheep.group.rotation.y - cameraRotation) * 0.05;
+
+            const cameraOffset = new THREE.Vector3(
+                -Math.sin(cameraRotation) * 15,
+                8,
+                -Math.cos(cameraRotation) * 15
+            );
+            const targetPosition = sheep.group.position.clone().add(cameraOffset);
+            camera.position.lerp(targetPosition, 0.08);
             camera.lookAt(sheep.group.position.x, sheep.group.position.y + 2, sheep.group.position.z);
 
             // Animate clouds
