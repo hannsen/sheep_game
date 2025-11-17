@@ -555,7 +555,9 @@
                     head: head,
                     body: body,
                     grazeTime: Math.random() * 10,
-                    grazeSpeed: 0.5 + Math.random() * 0.5
+                    grazeSpeed: 0.5 + Math.random() * 0.5,
+                    velocity: new THREE.Vector3(0, 0, 0),
+                    baseY: whiteSheep.position.y
                 };
 
                 scene.add(whiteSheep);
@@ -602,6 +604,41 @@
                 const bobAmount = Math.sin(userData.grazeTime * 2) * 0.15;
                 userData.head.rotation.x = bobAmount - 0.3;
                 userData.head.position.y = 1.2 + Math.abs(bobAmount) * 0.1;
+            });
+
+            // Check collisions between player and white sheep
+            whiteSheeps.forEach((whiteSheep) => {
+                const dx = sheep.group.position.x - whiteSheep.position.x;
+                const dz = sheep.group.position.z - whiteSheep.position.z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                const collisionDistance = 2.5;
+
+                if (distance < collisionDistance) {
+                    // Calculate push direction
+                    const pushX = -dx / distance;
+                    const pushZ = -dz / distance;
+                    const pushForce = (collisionDistance - distance) * 0.3;
+
+                    // Apply bounce velocity to white sheep
+                    whiteSheep.userData.velocity.x += pushX * pushForce;
+                    whiteSheep.userData.velocity.z += pushZ * pushForce;
+                }
+
+                // Apply velocity and friction to white sheep
+                whiteSheep.position.x += whiteSheep.userData.velocity.x;
+                whiteSheep.position.z += whiteSheep.userData.velocity.z;
+                whiteSheep.userData.velocity.multiplyScalar(0.85);
+
+                // Keep white sheep within bounds
+                const boundary = groundSize * 0.4;
+                if (Math.abs(whiteSheep.position.x) > boundary) {
+                    whiteSheep.position.x = Math.sign(whiteSheep.position.x) * boundary;
+                    whiteSheep.userData.velocity.x *= -0.5;
+                }
+                if (Math.abs(whiteSheep.position.z) > boundary) {
+                    whiteSheep.position.z = Math.sign(whiteSheep.position.z) * boundary;
+                    whiteSheep.userData.velocity.z *= -0.5;
+                }
             });
 
             // Camera follows sheep with lag on rotation
