@@ -196,8 +196,23 @@
                 // Apply gravity
                 this.velocity.y -= 20 * delta;
 
+                // Store old position for collision resolution
+                const oldX = this.group.position.x;
+                const oldZ = this.group.position.z;
+
                 // Update position
                 this.group.position.add(this.velocity.clone().multiplyScalar(delta));
+
+                // Check collision with obstacles
+                const collision = checkCollision(this.group.position.x, this.group.position.z, 1.5);
+                if (collision.collided) {
+                    // Revert position
+                    this.group.position.x = oldX;
+                    this.group.position.z = oldZ;
+                    // Stop velocity in collision direction
+                    this.velocity.x *= 0.1;
+                    this.velocity.z *= 0.1;
+                }
 
                 // Ground collision
                 if (this.group.position.y <= 0) {
@@ -351,17 +366,19 @@
                 if (side === 0) { // North
                     fence.position.x = -fenceSize + posInSide * postSpacing;
                     fence.position.z = fenceSize;
-                    fence.rotation.y = Math.PI / 2;
+                    fence.rotation.y = Math.PI; // Rotated 90° more
                 } else if (side === 1) { // East
                     fence.position.x = fenceSize;
                     fence.position.z = fenceSize - posInSide * postSpacing;
+                    fence.rotation.y = Math.PI / 2; // Rotated 90°
                 } else if (side === 2) { // South
                     fence.position.x = fenceSize - posInSide * postSpacing;
                     fence.position.z = -fenceSize;
-                    fence.rotation.y = Math.PI / 2;
+                    fence.rotation.y = Math.PI; // Rotated 90° more
                 } else { // West
                     fence.position.x = -fenceSize;
                     fence.position.z = -fenceSize + posInSide * postSpacing;
+                    fence.rotation.y = Math.PI / 2; // Rotated 90°
                 }
 
                 fenceGroup.add(fence);
@@ -448,6 +465,108 @@
             return hayBaleGroup;
         }
         const hayBales = createHayBales();
+
+        // Create collision objects array for obstacles
+        const collisionObjects = [];
+
+        // Add fence collision boundaries
+        const fenceSize = groundSize * 0.45;
+        collisionObjects.push({
+            type: 'rectangle',
+            x: 0,
+            z: fenceSize,
+            width: fenceSize * 2,
+            depth: 2,
+            name: 'fence-north'
+        });
+        collisionObjects.push({
+            type: 'rectangle',
+            x: 0,
+            z: -fenceSize,
+            width: fenceSize * 2,
+            depth: 2,
+            name: 'fence-south'
+        });
+        collisionObjects.push({
+            type: 'rectangle',
+            x: fenceSize,
+            z: 0,
+            width: 2,
+            depth: fenceSize * 2,
+            name: 'fence-east'
+        });
+        collisionObjects.push({
+            type: 'rectangle',
+            x: -fenceSize,
+            z: 0,
+            width: 2,
+            depth: fenceSize * 2,
+            name: 'fence-west'
+        });
+
+        // Add farmhouse collision
+        collisionObjects.push({
+            type: 'rectangle',
+            x: groundSize * 0.35,
+            z: groundSize * 0.35,
+            width: 12,
+            depth: 10,
+            name: 'farmhouse'
+        });
+
+        // Add hay bale collisions
+        hayBales.children.forEach((hayBale, index) => {
+            collisionObjects.push({
+                type: 'circle',
+                x: hayBale.position.x,
+                z: hayBale.position.z,
+                radius: 1.2,
+                name: `haybale-${index}`
+            });
+        });
+
+        // Add tree collisions (from earlier tree creation)
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const distance = groundSize * 0.4;
+            collisionObjects.push({
+                type: 'circle',
+                x: Math.cos(angle) * distance,
+                z: Math.sin(angle) * distance,
+                radius: 2.5,
+                name: `tree-${i}`
+            });
+        }
+
+        // Collision detection function
+        function checkCollision(x, z, radius) {
+            for (const obj of collisionObjects) {
+                if (obj.type === 'circle') {
+                    const dx = x - obj.x;
+                    const dz = z - obj.z;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+                    if (distance < radius + obj.radius) {
+                        return { collided: true, obj, dx, dz, distance };
+                    }
+                } else if (obj.type === 'rectangle') {
+                    const halfWidth = obj.width / 2;
+                    const halfDepth = obj.depth / 2;
+
+                    // Find closest point on rectangle to circle
+                    const closestX = Math.max(obj.x - halfWidth, Math.min(x, obj.x + halfWidth));
+                    const closestZ = Math.max(obj.z - halfDepth, Math.min(z, obj.z + halfDepth));
+
+                    const dx = x - closestX;
+                    const dz = z - closestZ;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+
+                    if (distance < radius) {
+                        return { collided: true, obj, dx, dz, distance };
+                    }
+                }
+            }
+            return { collided: false };
+        }
 
         // Add clouds
         function createClouds() {
@@ -631,15 +750,30 @@
                     const distance = Math.sqrt(dx * dx + dz * dz);
 
                     if (distance > 0.5) {
+                        // Store old position
+                        const oldX = whiteSheep.position.x;
+                        const oldZ = whiteSheep.position.z;
+
                         // Move towards target
                         const moveX = (dx / distance) * userData.moveSpeed * delta;
                         const moveZ = (dz / distance) * userData.moveSpeed * delta;
                         whiteSheep.position.x += moveX;
                         whiteSheep.position.z += moveZ;
 
-                        // Rotate to face movement direction
-                        const targetAngle = Math.atan2(dx, dz);
-                        whiteSheep.rotation.y = targetAngle;
+                        // Check collision
+                        const collision = checkCollision(whiteSheep.position.x, whiteSheep.position.z, 1.5);
+                        if (collision.collided) {
+                            // Revert position and pick new target
+                            whiteSheep.position.x = oldX;
+                            whiteSheep.position.z = oldZ;
+                            userData.isMoving = false;
+                            userData.targetPosition = null;
+                            userData.moveTimer = 2 + Math.random() * 3; // Try again soon
+                        } else {
+                            // Rotate to face movement direction
+                            const targetAngle = Math.atan2(dx, dz);
+                            whiteSheep.rotation.y = targetAngle;
+                        }
                     } else {
                         // Arrived at target
                         userData.isMoving = false;
