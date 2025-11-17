@@ -316,6 +316,139 @@
         }
         createTrees();
 
+        // Add fence around the meadow
+        function createFence() {
+            const fenceGroup = new THREE.Group();
+            const fenceSize = groundSize * 0.45;
+            const postSpacing = 8;
+            const postCount = Math.floor((fenceSize * 4) / postSpacing);
+
+            for (let i = 0; i < postCount; i++) {
+                const fence = new THREE.Group();
+
+                // Fence post
+                const postGeometry = new THREE.BoxGeometry(0.3, 2.5, 0.3);
+                const postMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const post = new THREE.Mesh(postGeometry, postMaterial);
+                post.position.y = 1.25;
+                post.castShadow = true;
+                fence.add(post);
+
+                // Horizontal rails
+                for (let j = 0; j < 3; j++) {
+                    const railGeometry = new THREE.BoxGeometry(postSpacing, 0.2, 0.2);
+                    const railMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    const rail = new THREE.Mesh(railGeometry, railMaterial);
+                    rail.position.y = 0.5 + j * 0.7;
+                    rail.position.x = postSpacing / 2;
+                    fence.add(rail);
+                }
+
+                // Position fence posts around perimeter
+                const side = Math.floor(i / (postCount / 4));
+                const posInSide = i % (postCount / 4);
+
+                if (side === 0) { // North
+                    fence.position.x = -fenceSize + posInSide * postSpacing;
+                    fence.position.z = fenceSize;
+                    fence.rotation.y = Math.PI / 2;
+                } else if (side === 1) { // East
+                    fence.position.x = fenceSize;
+                    fence.position.z = fenceSize - posInSide * postSpacing;
+                } else if (side === 2) { // South
+                    fence.position.x = fenceSize - posInSide * postSpacing;
+                    fence.position.z = -fenceSize;
+                    fence.rotation.y = Math.PI / 2;
+                } else { // West
+                    fence.position.x = -fenceSize;
+                    fence.position.z = -fenceSize + posInSide * postSpacing;
+                }
+
+                fenceGroup.add(fence);
+            }
+
+            scene.add(fenceGroup);
+            return fenceGroup;
+        }
+        const fence = createFence();
+
+        // Add farmhouse
+        function createFarmhouse() {
+            const farmhouse = new THREE.Group();
+
+            // Main house body
+            const houseGeometry = new THREE.BoxGeometry(12, 6, 10);
+            const houseMaterial = new THREE.MeshLambertMaterial({ color: 0xCC0000 });
+            const house = new THREE.Mesh(houseGeometry, houseMaterial);
+            house.position.y = 3;
+            house.castShadow = true;
+            farmhouse.add(house);
+
+            // Roof
+            const roofGeometry = new THREE.ConeGeometry(8.5, 4, 4);
+            const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.position.y = 8;
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            farmhouse.add(roof);
+
+            // Door
+            const doorGeometry = new THREE.BoxGeometry(2, 3.5, 0.2);
+            const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            const door = new THREE.Mesh(doorGeometry, doorMaterial);
+            door.position.set(0, 1.75, 5.1);
+            farmhouse.add(door);
+
+            // Windows
+            const windowGeometry = new THREE.BoxGeometry(1.5, 1.5, 0.2);
+            const windowMaterial = new THREE.MeshLambertMaterial({ color: 0x87CEEB });
+            const window1 = new THREE.Mesh(windowGeometry, windowMaterial);
+            window1.position.set(-3, 3.5, 5.1);
+            farmhouse.add(window1);
+
+            const window2 = new THREE.Mesh(windowGeometry, windowMaterial);
+            window2.position.set(3, 3.5, 5.1);
+            farmhouse.add(window2);
+
+            // Position farmhouse
+            farmhouse.position.set(groundSize * 0.35, 0, groundSize * 0.35);
+            farmhouse.rotation.y = -Math.PI / 4;
+
+            scene.add(farmhouse);
+            return farmhouse;
+        }
+        const farmhouse = createFarmhouse();
+
+        // Add hay bales
+        function createHayBales() {
+            const hayBaleGroup = new THREE.Group();
+
+            for (let i = 0; i < 10; i++) {
+                const hayBale = new THREE.Group();
+
+                // Main bale body
+                const baleGeometry = new THREE.CylinderGeometry(0.8, 0.8, 1.5, 16);
+                const baleMaterial = new THREE.MeshLambertMaterial({ color: 0xDEB887 });
+                const bale = new THREE.Mesh(baleGeometry, baleMaterial);
+                bale.rotation.z = Math.PI / 2;
+                bale.castShadow = true;
+                hayBale.add(bale);
+
+                // Position hay bales randomly
+                hayBale.position.x = (Math.random() - 0.5) * groundSize * 0.7;
+                hayBale.position.z = (Math.random() - 0.5) * groundSize * 0.7;
+                hayBale.position.y = 0.8;
+                hayBale.rotation.y = Math.random() * Math.PI * 2;
+
+                hayBaleGroup.add(hayBale);
+            }
+
+            scene.add(hayBaleGroup);
+            return hayBaleGroup;
+        }
+        const hayBales = createHayBales();
+
         // Add clouds
         function createClouds() {
             const cloudGroup = new THREE.Group();
