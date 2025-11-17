@@ -563,7 +563,11 @@
                     grazeTime: Math.random() * 10,
                     grazeSpeed: 0.5 + Math.random() * 0.5,
                     velocity: new THREE.Vector3(0, 0, 0),
-                    baseY: whiteSheep.position.y
+                    baseY: whiteSheep.position.y,
+                    moveTimer: 10 + Math.random() * 50, // Time until next move (10-60s)
+                    isMoving: false,
+                    targetPosition: null,
+                    moveSpeed: 2 + Math.random() * 2
                 };
 
                 scene.add(whiteSheep);
@@ -601,14 +605,57 @@
             // Update sheep
             sheep.update(keys, delta);
 
-            // Animate white sheep grazing
+            // Animate white sheep grazing and movement
             whiteSheeps.forEach((whiteSheep) => {
                 const userData = whiteSheep.userData;
                 userData.grazeTime += delta * userData.grazeSpeed;
 
-                // Head tilting animation for grazing - tilts forward and down to grass
-                const grazeAngle = Math.sin(userData.grazeTime * 1.5) * 0.5 + 0.5; // 0 to 1
-                userData.headGroup.rotation.x = grazeAngle * 1.0; // Tilt forward and down (positive = down)
+                // Movement timer - decide when to move to new grazing spot
+                if (!userData.isMoving) {
+                    userData.moveTimer -= delta;
+                    if (userData.moveTimer <= 0) {
+                        // Time to move to a new spot
+                        userData.isMoving = true;
+                        userData.targetPosition = new THREE.Vector3(
+                            (Math.random() - 0.5) * groundSize * 0.6,
+                            0,
+                            (Math.random() - 0.5) * groundSize * 0.6
+                        );
+                    }
+                }
+
+                // Move towards target position
+                if (userData.isMoving && userData.targetPosition) {
+                    const dx = userData.targetPosition.x - whiteSheep.position.x;
+                    const dz = userData.targetPosition.z - whiteSheep.position.z;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+
+                    if (distance > 0.5) {
+                        // Move towards target
+                        const moveX = (dx / distance) * userData.moveSpeed * delta;
+                        const moveZ = (dz / distance) * userData.moveSpeed * delta;
+                        whiteSheep.position.x += moveX;
+                        whiteSheep.position.z += moveZ;
+
+                        // Rotate to face movement direction
+                        const targetAngle = Math.atan2(dx, dz);
+                        whiteSheep.rotation.y = targetAngle;
+                    } else {
+                        // Arrived at target
+                        userData.isMoving = false;
+                        userData.targetPosition = null;
+                        userData.moveTimer = 10 + Math.random() * 50; // Reset timer for next move
+                    }
+                }
+
+                // Head tilting animation for grazing - only when not moving
+                if (!userData.isMoving) {
+                    const grazeAngle = Math.sin(userData.grazeTime * 1.5) * 0.5 + 0.5; // 0 to 1
+                    userData.headGroup.rotation.x = grazeAngle * 1.0; // Tilt forward and down (positive = down)
+                } else {
+                    // Head up when walking
+                    userData.headGroup.rotation.x = 0;
+                }
             });
 
             // Check collisions between player and white sheep
