@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Sheep Meadow Runner</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100;
+        }
+        #instructions h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        #instructions p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h2>Black Sheep Meadow Runner</h2>
+        <p><strong>WASD</strong> or <strong>Arrow Keys</strong> to move</p>
+        <p><strong>Space</strong> to jump</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 8, 15);
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 50, 50);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -50;
+        directionalLight.shadow.camera.right = 50;
+        directionalLight.shadow.camera.top = 50;
+        directionalLight.shadow.camera.bottom = -50;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        // Create black sheep
+        class Sheep {
+            constructor() {
+                this.group = new THREE.Group();
+
+                // Body
+                const bodyGeometry = new THREE.BoxGeometry(1.5, 1, 2);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+                this.body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                this.body.position.y = 1;
+                this.body.castShadow = true;
+                this.group.add(this.body);
+
+                // Head
+                const headGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+                const headMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+                this.head = new THREE.Mesh(headGeometry, headMaterial);
+                this.head.position.set(0, 1.2, 1.2);
+                this.head.castShadow = true;
+                this.group.add(this.head);
+
+                // Eyes
+                const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.25, 1.3, 1.6);
+                this.group.add(leftEye);
+
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.25, 1.3, 1.6);
+                this.group.add(rightEye);
+
+                // Pupils
+                const pupilGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+                const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+                const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+                leftPupil.position.set(-0.25, 1.3, 1.65);
+                this.group.add(leftPupil);
+
+                const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+                rightPupil.position.set(0.25, 1.3, 1.65);
+                this.group.add(rightPupil);
+
+                // Legs
+                const legGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.8, 8);
+                const legMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+
+                this.legs = [];
+                const legPositions = [
+                    [-0.5, 0.4, 0.6],
+                    [0.5, 0.4, 0.6],
+                    [-0.5, 0.4, -0.6],
+                    [0.5, 0.4, -0.6]
+                ];
+
+                legPositions.forEach(pos => {
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    leg.position.set(pos[0], pos[1], pos[2]);
+                    leg.castShadow = true;
+                    this.group.add(leg);
+                    this.legs.push(leg);
+                });
+
+                // Ears
+                const earGeometry = new THREE.ConeGeometry(0.2, 0.4, 8);
+                const earMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+                const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+                leftEar.position.set(-0.3, 1.6, 1.2);
+                leftEar.rotation.z = 0.3;
+                this.group.add(leftEar);
+
+                const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+                rightEar.position.set(0.3, 1.6, 1.2);
+                rightEar.rotation.z = -0.3;
+                this.group.add(rightEar);
+
+                this.velocity = new THREE.Vector3();
+                this.isJumping = false;
+            }
+
+            update(keys, delta) {
+                const speed = 8;
+                const rotationSpeed = 3;
+
+                // Rotation
+                if (keys['KeyA'] || keys['ArrowLeft']) {
+                    this.group.rotation.y += rotationSpeed * delta;
+                }
+                if (keys['KeyD'] || keys['ArrowRight']) {
+                    this.group.rotation.y -= rotationSpeed * delta;
+                }
+
+                // Forward/backward movement
+                if (keys['KeyW'] || keys['ArrowUp']) {
+                    this.velocity.x -= Math.sin(this.group.rotation.y) * speed * delta;
+                    this.velocity.z -= Math.cos(this.group.rotation.y) * speed * delta;
+                    this.animateLegs(delta);
+                }
+                if (keys['KeyS'] || keys['ArrowDown']) {
+                    this.velocity.x += Math.sin(this.group.rotation.y) * speed * delta;
+                    this.velocity.z += Math.cos(this.group.rotation.y) * speed * delta;
+                    this.animateLegs(delta);
+                }
+
+                // Jumping
+                if (keys['Space'] && !this.isJumping) {
+                    this.velocity.y = 6;
+                    this.isJumping = true;
+                }
+
+                // Apply gravity
+                this.velocity.y -= 20 * delta;
+
+                // Update position
+                this.group.position.add(this.velocity.clone().multiplyScalar(delta));
+
+                // Ground collision
+                if (this.group.position.y <= 0) {
+                    this.group.position.y = 0;
+                    this.velocity.y = 0;
+                    this.isJumping = false;
+                }
+
+                // Apply friction
+                this.velocity.x *= 0.9;
+                this.velocity.z *= 0.9;
+            }
+
+            animateLegs(delta) {
+                const time = Date.now() * 0.01;
+                this.legs.forEach((leg, index) => {
+                    const offset = index < 2 ? 0 : Math.PI;
+                    leg.rotation.x = Math.sin(time + offset) * 0.3;
+                });
+            }
+        }
+
+        // Create meadow ground
+        const groundSize = 200;
+        const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 50, 50);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x4CAF50 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Add some terrain variation
+        const vertices = ground.geometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            vertices[i + 2] = Math.random() * 0.5;
+        }
+        ground.geometry.attributes.position.needsUpdate = true;
+        ground.geometry.computeVertexNormals();
+
+        // Add grass blades
+        function createGrass() {
+            const grassGroup = new THREE.Group();
+            const grassGeometry = new THREE.ConeGeometry(0.1, 1, 3);
+            const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x2E7D32 });
+
+            for (let i = 0; i < 500; i++) {
+                const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+                grass.position.x = (Math.random() - 0.5) * groundSize * 0.8;
+                grass.position.z = (Math.random() - 0.5) * groundSize * 0.8;
+                grass.position.y = 0.5;
+                grass.rotation.y = Math.random() * Math.PI * 2;
+                grass.scale.y = 0.5 + Math.random() * 0.5;
+                grassGroup.add(grass);
+            }
+            scene.add(grassGroup);
+        }
+        createGrass();
+
+        // Add flowers
+        function createFlowers() {
+            const flowerGroup = new THREE.Group();
+            const colors = [0xFF69B4, 0xFFFF00, 0xFF6347, 0xFF00FF, 0xFFFFFF];
+
+            for (let i = 0; i < 100; i++) {
+                const stemGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 4);
+                const stemMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+
+                const petalGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+                const petalMaterial = new THREE.MeshLambertMaterial({
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                });
+                const petal = new THREE.Mesh(petalGeometry, petalMaterial);
+                petal.position.y = 0.25;
+
+                const flower = new THREE.Group();
+                flower.add(stem);
+                flower.add(petal);
+                flower.position.x = (Math.random() - 0.5) * groundSize * 0.8;
+                flower.position.z = (Math.random() - 0.5) * groundSize * 0.8;
+                flower.position.y = 0.25;
+
+                flowerGroup.add(flower);
+            }
+            scene.add(flowerGroup);
+        }
+        createFlowers();
+
+        // Add trees
+        function createTrees() {
+            for (let i = 0; i < 20; i++) {
+                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 3, 8);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.castShadow = true;
+
+                const foliageGeometry = new THREE.SphereGeometry(2, 8, 8);
+                const foliageMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.y = 3;
+                foliage.castShadow = true;
+
+                const tree = new THREE.Group();
+                tree.add(trunk);
+                tree.add(foliage);
+                tree.position.y = 1.5;
+
+                // Position trees around the edges
+                const angle = (i / 20) * Math.PI * 2;
+                const distance = groundSize * 0.4;
+                tree.position.x = Math.cos(angle) * distance;
+                tree.position.z = Math.sin(angle) * distance;
+
+                scene.add(tree);
+            }
+        }
+        createTrees();
+
+        // Add clouds
+        function createClouds() {
+            const cloudGroup = new THREE.Group();
+
+            for (let i = 0; i < 10; i++) {
+                const cloud = new THREE.Group();
+                const cloudMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+
+                for (let j = 0; j < 5; j++) {
+                    const cloudGeometry = new THREE.SphereGeometry(1 + Math.random() * 0.5, 8, 8);
+                    const cloudPart = new THREE.Mesh(cloudGeometry, cloudMaterial);
+                    cloudPart.position.x = (Math.random() - 0.5) * 3;
+                    cloudPart.position.y = (Math.random() - 0.5) * 1;
+                    cloud.add(cloudPart);
+                }
+
+                cloud.position.x = (Math.random() - 0.5) * groundSize;
+                cloud.position.y = 20 + Math.random() * 10;
+                cloud.position.z = (Math.random() - 0.5) * groundSize;
+                cloudGroup.add(cloud);
+            }
+
+            scene.add(cloudGroup);
+            return cloudGroup;
+        }
+        const clouds = createClouds();
+
+        // Initialize sheep
+        const sheep = new Sheep();
+        scene.add(sheep.group);
+
+        // Keyboard input
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            // Update sheep
+            sheep.update(keys, delta);
+
+            // Camera follows sheep
+            const targetPosition = sheep.group.position.clone();
+            targetPosition.y += 8;
+            targetPosition.z += 15;
+            camera.position.lerp(targetPosition, 0.1);
+            camera.lookAt(sheep.group.position.x, sheep.group.position.y + 2, sheep.group.position.z);
+
+            // Animate clouds
+            clouds.children.forEach((cloud, index) => {
+                cloud.position.x += 0.02 * (1 + index * 0.1);
+                if (cloud.position.x > groundSize / 2) {
+                    cloud.position.x = -groundSize / 2;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
