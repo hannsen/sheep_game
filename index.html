@@ -606,9 +606,9 @@
                 const userData = whiteSheep.userData;
                 userData.grazeTime += delta * userData.grazeSpeed;
 
-                // Head tilting animation for grazing - tilts down to grass
+                // Head tilting animation for grazing - tilts forward and down to grass
                 const grazeAngle = Math.sin(userData.grazeTime * 1.5) * 0.5 + 0.5; // 0 to 1
-                userData.headGroup.rotation.x = -grazeAngle * 0.8; // Tilt forward (negative = down)
+                userData.headGroup.rotation.x = grazeAngle * 1.0; // Tilt forward and down (positive = down)
             });
 
             // Check collisions between player and white sheep
