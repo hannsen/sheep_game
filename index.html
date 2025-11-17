@@ -39,6 +39,7 @@
     <div id="instructions">
         <h2>Black Sheep Meadow Runner</h2>
         <p><strong>WASD</strong> or <strong>Arrow Keys</strong> to move</p>
+        <p><strong>Shift</strong> to sprint</p>
         <p><strong>Space</strong> to jump</p>
     </div>
 
@@ -161,7 +162,9 @@
             }
 
             update(keys, delta) {
-                const speed = 35;
+                const baseSpeed = 35;
+                const sprintMultiplier = keys['ShiftLeft'] || keys['ShiftRight'] ? 1.8 : 1;
+                const speed = baseSpeed * sprintMultiplier;
                 const rotationSpeed = 3;
 
                 // Rotation
@@ -176,12 +179,12 @@
                 if (keys['KeyW'] || keys['ArrowUp']) {
                     this.velocity.x += Math.sin(this.group.rotation.y) * speed * delta;
                     this.velocity.z += Math.cos(this.group.rotation.y) * speed * delta;
-                    this.animateLegs(delta);
+                    this.animateLegs(delta, sprintMultiplier);
                 }
                 if (keys['KeyS'] || keys['ArrowDown']) {
                     this.velocity.x -= Math.sin(this.group.rotation.y) * speed * delta;
                     this.velocity.z -= Math.cos(this.group.rotation.y) * speed * delta;
-                    this.animateLegs(delta);
+                    this.animateLegs(delta, sprintMultiplier);
                 }
 
                 // Jumping
@@ -208,8 +211,8 @@
                 this.velocity.z *= 0.9;
             }
 
-            animateLegs(delta) {
-                const time = Date.now() * 0.01;
+            animateLegs(delta, speedMultiplier = 1) {
+                const time = Date.now() * 0.01 * speedMultiplier;
                 this.legs.forEach((leg, index) => {
                     const offset = index < 2 ? 0 : Math.PI;
                     leg.rotation.x = Math.sin(time + offset) * 0.3;
