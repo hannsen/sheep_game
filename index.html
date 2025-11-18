@@ -78,32 +78,41 @@
             font-weight: bold;
         }
 
-        .dpad-container {
+        .joystick-container {
             position: absolute;
             bottom: 30px;
             left: 30px;
-            width: 180px;
-            height: 180px;
+            width: 140px;
+            height: 140px;
         }
 
-        #btn-up {
-            top: 0;
-            left: 55px;
+        .joystick-base {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: auto;
+            touch-action: none;
         }
 
-        #btn-down {
-            bottom: 0;
-            left: 55px;
+        .joystick-knob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: background 0.1s;
+            pointer-events: none;
         }
 
-        #btn-left {
-            top: 55px;
-            left: 0;
-        }
-
-        #btn-right {
-            top: 55px;
-            right: 0;
+        .joystick-base.active .joystick-knob {
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .action-buttons {
@@ -136,11 +145,10 @@
 
     <!-- Mobile Controls -->
     <div class="mobile-controls" id="mobileControls">
-        <div class="dpad-container">
-            <div class="mobile-button" id="btn-up">↑</div>
-            <div class="mobile-button" id="btn-down">↓</div>
-            <div class="mobile-button" id="btn-left">←</div>
-            <div class="mobile-button" id="btn-right">→</div>
+        <div class="joystick-container">
+            <div class="joystick-base" id="joystick">
+                <div class="joystick-knob" id="joystick-knob"></div>
+            </div>
         </div>
         <div class="action-buttons">
             <div class="mobile-button rect" id="btn-jump">JUMP</div>
@@ -874,35 +882,132 @@
 
         // Mobile touch controls
         if (isMobile) {
-            const mobileButtons = {
-                'btn-up': 'ArrowUp',
-                'btn-down': 'ArrowDown',
-                'btn-left': 'ArrowLeft',
-                'btn-right': 'ArrowRight',
+            // Joystick state
+            const joystickState = {
+                active: false,
+                x: 0, // -1 to 1
+                y: 0  // -1 to 1
+            };
+
+            const joystick = document.getElementById('joystick');
+            const joystickKnob = document.getElementById('joystick-knob');
+            const joystickRadius = 70; // Half of joystick-base width (140px / 2)
+            const knobMaxDistance = 40; // Maximum distance knob can move from center
+
+            function updateJoystick(touch) {
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                // Calculate offset from center
+                const offsetX = touch.clientX - centerX;
+                const offsetY = touch.clientY - centerY;
+
+                // Calculate distance and angle
+                const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                const angle = Math.atan2(offsetY, offsetX);
+
+                // Limit distance to knobMaxDistance
+                const limitedDistance = Math.min(distance, knobMaxDistance);
+
+                // Calculate knob position
+                const knobX = Math.cos(angle) * limitedDistance;
+                const knobY = Math.sin(angle) * limitedDistance;
+
+                // Update knob visual position
+                joystickKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+
+                // Update joystick state (normalized -1 to 1)
+                joystickState.x = knobX / knobMaxDistance;
+                joystickState.y = knobY / knobMaxDistance;
+
+                // Convert joystick position to key inputs
+                // Forward/backward based on Y axis
+                if (joystickState.y < -0.3) {
+                    keys['ArrowUp'] = true;
+                    keys['ArrowDown'] = false;
+                } else if (joystickState.y > 0.3) {
+                    keys['ArrowDown'] = true;
+                    keys['ArrowUp'] = false;
+                } else {
+                    keys['ArrowUp'] = false;
+                    keys['ArrowDown'] = false;
+                }
+
+                // Left/right based on X axis
+                if (joystickState.x < -0.3) {
+                    keys['ArrowLeft'] = true;
+                    keys['ArrowRight'] = false;
+                } else if (joystickState.x > 0.3) {
+                    keys['ArrowRight'] = true;
+                    keys['ArrowLeft'] = false;
+                } else {
+                    keys['ArrowLeft'] = false;
+                    keys['ArrowRight'] = false;
+                }
+            }
+
+            function resetJoystick() {
+                joystickState.active = false;
+                joystickState.x = 0;
+                joystickState.y = 0;
+                joystickKnob.style.transform = 'translate(-50%, -50%)';
+                joystick.classList.remove('active');
+
+                // Clear all directional keys
+                keys['ArrowUp'] = false;
+                keys['ArrowDown'] = false;
+                keys['ArrowLeft'] = false;
+                keys['ArrowRight'] = false;
+            }
+
+            // Joystick touch handlers
+            joystick.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickState.active = true;
+                joystick.classList.add('active');
+                updateJoystick(e.touches[0]);
+            }, { passive: false });
+
+            joystick.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (joystickState.active) {
+                    updateJoystick(e.touches[0]);
+                }
+            }, { passive: false });
+
+            joystick.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                resetJoystick();
+            }, { passive: false });
+
+            joystick.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                resetJoystick();
+            }, { passive: false });
+
+            // Action buttons (jump and sprint)
+            const actionButtons = {
                 'btn-jump': 'Space',
                 'btn-sprint': 'ShiftLeft'
             };
 
-            // Setup touch event handlers for each button
-            Object.keys(mobileButtons).forEach(btnId => {
+            Object.keys(actionButtons).forEach(btnId => {
                 const button = document.getElementById(btnId);
-                const keyCode = mobileButtons[btnId];
+                const keyCode = actionButtons[btnId];
 
-                // Touch start
                 button.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     keys[keyCode] = true;
                     button.classList.add('pressed');
                 }, { passive: false });
 
-                // Touch end
                 button.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     keys[keyCode] = false;
                     button.classList.remove('pressed');
                 }, { passive: false });
 
-                // Touch cancel (when finger leaves button area)
                 button.addEventListener('touchcancel', (e) => {
                     e.preventDefault();
                     keys[keyCode] = false;
