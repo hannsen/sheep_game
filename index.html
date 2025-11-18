@@ -307,6 +307,7 @@
                 if (keys['Space'] && !this.isJumping) {
                     this.velocity.y = 6;
                     this.isJumping = true;
+                    playJumpSound();
                 }
 
                 // Apply gravity
@@ -802,7 +803,8 @@
                     moveTimer: 10 + Math.random() * 50, // Time until next move (10-60s)
                     isMoving: false,
                     targetPosition: null,
-                    moveSpeed: 2 + Math.random() * 2
+                    moveSpeed: 2 + Math.random() * 2,
+                    lastBleatTime: 0 // Track when sheep last bleated
                 };
 
                 scene.add(whiteSheep);
@@ -812,6 +814,54 @@
             return whiteSheepArray;
         }
         const whiteSheeps = createWhiteSheep();
+
+        // Audio context for sound effects
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Function to play jump sound
+        function playJumpSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Create a pleasant jump sound (quick upward pitch)
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+
+            // Volume envelope for smooth sound
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+            oscillator.type = 'sine';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        // Function to play sheep bleat sound
+        function playBleatSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Create a sheep-like bleat sound (wavering pitch)
+            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(350, audioContext.currentTime + 0.1);
+            oscillator.frequency.linearRampToValueAtTime(420, audioContext.currentTime + 0.2);
+            oscillator.frequency.linearRampToValueAtTime(380, audioContext.currentTime + 0.35);
+
+            // Volume envelope
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.25, audioContext.currentTime + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+
+            oscillator.type = 'sawtooth'; // Sawtooth for more "animal-like" sound
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.4);
+        }
 
         // Keyboard input
         const keys = {};
@@ -963,6 +1013,13 @@
                     // Apply bounce velocity to white sheep
                     whiteSheep.userData.velocity.x += pushX * pushForce;
                     whiteSheep.userData.velocity.z += pushZ * pushForce;
+
+                    // Play bleat sound with cooldown (1 second between bleats)
+                    const currentTime = Date.now() / 1000;
+                    if (currentTime - whiteSheep.userData.lastBleatTime > 1.0) {
+                        playBleatSound();
+                        whiteSheep.userData.lastBleatTime = currentTime;
+                    }
                 }
 
                 // Apply velocity and friction to white sheep
