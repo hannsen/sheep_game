@@ -101,3 +101,4 @@ Since this is a single-file project, all edits are made directly to `index.html`
 
 ## Git Commit Patterns
 Recent commits follow the pattern: verb + description (e.g., "Add mobile touch controls", "Fix grazing animation direction")
+- commit each change with git.
