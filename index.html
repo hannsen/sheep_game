@@ -853,76 +853,91 @@
             minimapCtx.fillStyle = 'rgba(76, 175, 80, 0.3)';
             minimapCtx.fillRect(0, 0, minimapSize, minimapSize);
 
+            // Save context and apply rotation
+            minimapCtx.save();
+
+            // Translate to center of minimap
+            minimapCtx.translate(minimapSize / 2, minimapSize / 2);
+
+            // Rotate based on player rotation (negative because we want map to rotate opposite)
+            minimapCtx.rotate(-sheep.group.rotation.y);
+
+            // Helper function to convert world coordinates to minimap coordinates
+            function worldToMinimap(worldX, worldZ) {
+                const relativeX = (worldX - sheep.group.position.x) * mapScale;
+                const relativeZ = -(worldZ - sheep.group.position.z) * mapScale;
+                return { x: relativeX, y: relativeZ };
+            }
+
             // Draw fence boundary
             const fenceSize = groundSize * 0.45;
-            const fenceX = (minimapSize / 2) - (fenceSize * mapScale);
-            const fenceY = (minimapSize / 2) - (fenceSize * mapScale);
             const fenceWidth = fenceSize * 2 * mapScale;
+            const fenceCorner = worldToMinimap(-fenceSize, fenceSize);
             minimapCtx.strokeStyle = 'rgba(139, 69, 19, 0.8)';
             minimapCtx.lineWidth = 2;
-            minimapCtx.strokeRect(fenceX, fenceY, fenceWidth, fenceWidth);
+            minimapCtx.strokeRect(fenceCorner.x, fenceCorner.y, fenceWidth, fenceWidth);
 
             // Draw farmhouse
-            const farmhouseX = (minimapSize / 2) + (groundSize * 0.35 * mapScale) - (6 * mapScale);
-            const farmhouseY = (minimapSize / 2) - (groundSize * 0.35 * mapScale) - (5 * mapScale);
+            const farmhouseWorldX = groundSize * 0.35;
+            const farmhouseWorldZ = groundSize * 0.35;
+            const farmhousePos = worldToMinimap(farmhouseWorldX, farmhouseWorldZ);
             minimapCtx.fillStyle = 'rgba(204, 0, 0, 0.8)';
-            minimapCtx.fillRect(farmhouseX, farmhouseY, 12 * mapScale, 10 * mapScale);
+            minimapCtx.fillRect(
+                farmhousePos.x - (6 * mapScale),
+                farmhousePos.y - (5 * mapScale),
+                12 * mapScale,
+                10 * mapScale
+            );
 
             // Draw trees
             minimapCtx.fillStyle = 'rgba(34, 139, 34, 0.6)';
             for (let i = 0; i < 20; i++) {
                 const angle = (i / 20) * Math.PI * 2;
                 const distance = groundSize * 0.4;
-                const treeX = (minimapSize / 2) + (Math.cos(angle) * distance * mapScale);
-                const treeY = (minimapSize / 2) - (Math.sin(angle) * distance * mapScale);
+                const treeWorldX = Math.cos(angle) * distance;
+                const treeWorldZ = Math.sin(angle) * distance;
+                const treePos = worldToMinimap(treeWorldX, treeWorldZ);
                 minimapCtx.beginPath();
-                minimapCtx.arc(treeX, treeY, 3, 0, Math.PI * 2);
+                minimapCtx.arc(treePos.x, treePos.y, 3, 0, Math.PI * 2);
                 minimapCtx.fill();
             }
 
             // Draw hay bales
             minimapCtx.fillStyle = 'rgba(222, 184, 135, 0.7)';
             hayBales.children.forEach((hayBale) => {
-                const hayX = (minimapSize / 2) + (hayBale.position.x * mapScale);
-                const hayY = (minimapSize / 2) - (hayBale.position.z * mapScale);
-                minimapCtx.fillRect(hayX - 1.5, hayY - 1.5, 3, 3);
+                const hayPos = worldToMinimap(hayBale.position.x, hayBale.position.z);
+                minimapCtx.fillRect(hayPos.x - 1.5, hayPos.y - 1.5, 3, 3);
             });
 
             // Draw white sheep
             minimapCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             whiteSheeps.forEach((whiteSheep) => {
-                const sheepX = (minimapSize / 2) + (whiteSheep.position.x * mapScale);
-                const sheepY = (minimapSize / 2) - (whiteSheep.position.z * mapScale);
+                const sheepPos = worldToMinimap(whiteSheep.position.x, whiteSheep.position.z);
                 minimapCtx.beginPath();
-                minimapCtx.arc(sheepX, sheepY, 2.5, 0, Math.PI * 2);
+                minimapCtx.arc(sheepPos.x, sheepPos.y, 2.5, 0, Math.PI * 2);
                 minimapCtx.fill();
             });
 
-            // Draw player (black sheep)
-            const playerX = (minimapSize / 2) + (sheep.group.position.x * mapScale);
-            const playerY = (minimapSize / 2) - (sheep.group.position.z * mapScale);
-
-            // Draw direction indicator
+            // Draw direction indicator (pointing up since we're centered)
             const directionLength = 8;
-            const directionAngle = -sheep.group.rotation.y;
-            const directionEndX = playerX + Math.cos(directionAngle) * directionLength;
-            const directionEndY = playerY + Math.sin(directionAngle) * directionLength;
-
             minimapCtx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
             minimapCtx.lineWidth = 2;
             minimapCtx.beginPath();
-            minimapCtx.moveTo(playerX, playerY);
-            minimapCtx.lineTo(directionEndX, directionEndY);
+            minimapCtx.moveTo(0, 0);
+            minimapCtx.lineTo(0, -directionLength);
             minimapCtx.stroke();
 
-            // Draw player dot (black sheep)
+            // Draw player dot (black sheep) at center
             minimapCtx.fillStyle = 'rgba(26, 26, 26, 1)';
             minimapCtx.strokeStyle = 'rgba(255, 255, 0, 1)';
             minimapCtx.lineWidth = 2;
             minimapCtx.beginPath();
-            minimapCtx.arc(playerX, playerY, 4, 0, Math.PI * 2);
+            minimapCtx.arc(0, 0, 4, 0, Math.PI * 2);
             minimapCtx.fill();
             minimapCtx.stroke();
+
+            // Restore context
+            minimapCtx.restore();
         }
 
         // Audio context for sound effects
