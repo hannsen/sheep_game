@@ -132,6 +132,19 @@
             bottom: 0;
             right: 0;
         }
+
+        /* Minimap */
+        #minimap {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+        }
     </style>
 </head>
 <body>
@@ -142,6 +155,9 @@
         <p class="desktop-only"><strong>Space</strong> to jump</p>
         <p class="mobile-only" style="display:none;">Use on-screen controls to play</p>
     </div>
+
+    <!-- Minimap -->
+    <canvas id="minimap" width="200" height="200"></canvas>
 
     <!-- Mobile Controls -->
     <div class="mobile-controls" id="mobileControls">
@@ -823,6 +839,92 @@
         }
         const whiteSheeps = createWhiteSheep();
 
+        // Minimap setup
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        const minimapSize = 200;
+        const mapScale = minimapSize / (groundSize * 0.9); // Show slightly more than fence area
+
+        function renderMinimap() {
+            // Clear canvas
+            minimapCtx.clearRect(0, 0, minimapSize, minimapSize);
+
+            // Draw background (grass area)
+            minimapCtx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+            minimapCtx.fillRect(0, 0, minimapSize, minimapSize);
+
+            // Draw fence boundary
+            const fenceSize = groundSize * 0.45;
+            const fenceX = (minimapSize / 2) - (fenceSize * mapScale);
+            const fenceY = (minimapSize / 2) - (fenceSize * mapScale);
+            const fenceWidth = fenceSize * 2 * mapScale;
+            minimapCtx.strokeStyle = 'rgba(139, 69, 19, 0.8)';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.strokeRect(fenceX, fenceY, fenceWidth, fenceWidth);
+
+            // Draw farmhouse
+            const farmhouseX = (minimapSize / 2) + (groundSize * 0.35 * mapScale) - (6 * mapScale);
+            const farmhouseY = (minimapSize / 2) - (groundSize * 0.35 * mapScale) - (5 * mapScale);
+            minimapCtx.fillStyle = 'rgba(204, 0, 0, 0.8)';
+            minimapCtx.fillRect(farmhouseX, farmhouseY, 12 * mapScale, 10 * mapScale);
+
+            // Draw trees
+            minimapCtx.fillStyle = 'rgba(34, 139, 34, 0.6)';
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const distance = groundSize * 0.4;
+                const treeX = (minimapSize / 2) + (Math.cos(angle) * distance * mapScale);
+                const treeY = (minimapSize / 2) - (Math.sin(angle) * distance * mapScale);
+                minimapCtx.beginPath();
+                minimapCtx.arc(treeX, treeY, 3, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            // Draw hay bales
+            minimapCtx.fillStyle = 'rgba(222, 184, 135, 0.7)';
+            hayBales.children.forEach((hayBale) => {
+                const hayX = (minimapSize / 2) + (hayBale.position.x * mapScale);
+                const hayY = (minimapSize / 2) - (hayBale.position.z * mapScale);
+                minimapCtx.fillRect(hayX - 1.5, hayY - 1.5, 3, 3);
+            });
+
+            // Draw white sheep
+            minimapCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            whiteSheeps.forEach((whiteSheep) => {
+                const sheepX = (minimapSize / 2) + (whiteSheep.position.x * mapScale);
+                const sheepY = (minimapSize / 2) - (whiteSheep.position.z * mapScale);
+                minimapCtx.beginPath();
+                minimapCtx.arc(sheepX, sheepY, 2.5, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+
+            // Draw player (black sheep)
+            const playerX = (minimapSize / 2) + (sheep.group.position.x * mapScale);
+            const playerY = (minimapSize / 2) - (sheep.group.position.z * mapScale);
+
+            // Draw direction indicator
+            const directionLength = 8;
+            const directionAngle = -sheep.group.rotation.y;
+            const directionEndX = playerX + Math.cos(directionAngle) * directionLength;
+            const directionEndY = playerY + Math.sin(directionAngle) * directionLength;
+
+            minimapCtx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.beginPath();
+            minimapCtx.moveTo(playerX, playerY);
+            minimapCtx.lineTo(directionEndX, directionEndY);
+            minimapCtx.stroke();
+
+            // Draw player dot (black sheep)
+            minimapCtx.fillStyle = 'rgba(26, 26, 26, 1)';
+            minimapCtx.strokeStyle = 'rgba(255, 255, 0, 1)';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.beginPath();
+            minimapCtx.arc(playerX, playerY, 4, 0, Math.PI * 2);
+            minimapCtx.fill();
+            minimapCtx.stroke();
+        }
+
         // Audio context for sound effects
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1165,6 +1267,9 @@
             });
 
             renderer.render(scene, camera);
+
+            // Update minimap
+            renderMinimap();
         }
         animate();
     </script>
