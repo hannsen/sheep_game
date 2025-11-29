@@ -846,6 +846,7 @@
 
         // Initialize player sheep
         const sheep = new Sheep();
+        sheep.group.position.set(-10, 0, -10); // Start away from the copying machine
         scene.add(sheep.group);
 
         // Add white sheep to the meadow with grazing behavior
