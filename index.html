@@ -173,6 +173,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script>
         // Detect mobile device
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -579,102 +580,52 @@
         const farmhouse = createFarmhouse();
 
         // Add office copying machine in the middle
-        function createCopyingMachine() {
-            const copyingMachine = new THREE.Group();
+        let copyingMachine = null;
+        function loadCopyingMachine() {
+            const loader = new THREE.GLTFLoader();
 
-            // Main body (large rectangular base)
-            const bodyGeometry = new THREE.BoxGeometry(4, 2, 3);
-            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xE0E0E0 }); // Light gray
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 1;
-            body.castShadow = true;
-            copyingMachine.add(body);
+            // Load the external GLTF/GLB model
+            loader.load(
+                './models/copier.glb', // Path to the model file
+                function (gltf) {
+                    // Success callback
+                    copyingMachine = gltf.scene;
 
-            // Scanner section (top part)
-            const scannerBaseGeometry = new THREE.BoxGeometry(3.6, 0.4, 2.6);
-            const scannerBaseMaterial = new THREE.MeshLambertMaterial({ color: 0xB0B0B0 }); // Darker gray
-            const scannerBase = new THREE.Mesh(scannerBaseGeometry, scannerBaseMaterial);
-            scannerBase.position.y = 2.2;
-            scannerBase.castShadow = true;
-            copyingMachine.add(scannerBase);
+                    // Enable shadows for all meshes in the model
+                    copyingMachine.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
 
-            // Scanner lid (slightly raised and angled)
-            const scannerLidGeometry = new THREE.BoxGeometry(3.6, 0.25, 2.6);
-            const scannerLidMaterial = new THREE.MeshLambertMaterial({ color: 0x303030 }); // Dark gray
-            const scannerLid = new THREE.Mesh(scannerLidGeometry, scannerLidMaterial);
-            scannerLid.position.set(0, 2.7, -0.3);
-            scannerLid.rotation.x = -0.3; // Slightly open
-            scannerLid.castShadow = true;
-            copyingMachine.add(scannerLid);
+                    // Adjust scale and position as needed
+                    copyingMachine.scale.set(3, 3, 3); // Scale up the model
+                    copyingMachine.position.set(0, 0, 0); // Position in the middle
+                    copyingMachine.rotation.y = Math.PI; // Rotate 180 degrees if needed
 
-            // Control panel (angled display)
-            const controlPanelGeometry = new THREE.BoxGeometry(1.5, 0.8, 0.15);
-            const controlPanelMaterial = new THREE.MeshLambertMaterial({ color: 0x1E1E1E }); // Black
-            const controlPanel = new THREE.Mesh(controlPanelGeometry, controlPanelMaterial);
-            controlPanel.position.set(1.2, 2.3, 1.65);
-            controlPanel.rotation.x = -0.5;
-            controlPanel.rotation.y = -0.2;
-            copyingMachine.add(controlPanel);
-
-            // Display screen (small green screen)
-            const screenGeometry = new THREE.BoxGeometry(0.8, 0.4, 0.05);
-            const screenMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00, emissive: 0x00AA00 }); // Green glow
-            const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-            screen.position.set(1.25, 2.42, 1.75);
-            screen.rotation.x = -0.5;
-            screen.rotation.y = -0.2;
-            copyingMachine.add(screen);
-
-            // Buttons on control panel
-            const buttonGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.05, 8);
-            const buttonColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00]; // Red, Green, Blue, Yellow
-
-            for (let i = 0; i < 4; i++) {
-                const buttonMaterial = new THREE.MeshLambertMaterial({ color: buttonColors[i] });
-                const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
-                button.position.set(1.1 + (i * 0.2), 2.12, 1.72);
-                button.rotation.x = Math.PI / 2;
-                copyingMachine.add(button);
-            }
-
-            // Paper input tray
-            const inputTrayGeometry = new THREE.BoxGeometry(3, 0.1, 2);
-            const inputTrayMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF }); // White paper
-            const inputTray = new THREE.Mesh(inputTrayGeometry, inputTrayMaterial);
-            inputTray.position.set(-0.5, 0.8, -1.2);
-            inputTray.rotation.x = 0.3;
-            copyingMachine.add(inputTray);
-
-            // Paper output tray
-            const outputTrayGeometry = new THREE.BoxGeometry(2.5, 0.1, 1.8);
-            const outputTrayMaterial = new THREE.MeshLambertMaterial({ color: 0xF5F5F5 }); // Off-white
-            const outputTray = new THREE.Mesh(outputTrayGeometry, outputTrayMaterial);
-            outputTray.position.set(0.3, 0.3, 1.5);
-            outputTray.rotation.x = -0.2;
-            copyingMachine.add(outputTray);
-
-            // Brand logo (small colored rectangle on front)
-            const logoGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.05);
-            const logoMaterial = new THREE.MeshLambertMaterial({ color: 0x0066CC }); // Blue logo
-            const logo = new THREE.Mesh(logoGeometry, logoMaterial);
-            logo.position.set(-1.5, 1.5, 1.55);
-            copyingMachine.add(logo);
-
-            // Power button (small green circle)
-            const powerButtonGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.06, 16);
-            const powerButtonMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00, emissive: 0x00AA00 });
-            const powerButton = new THREE.Mesh(powerButtonGeometry, powerButtonMaterial);
-            powerButton.position.set(-1.8, 1.8, 1.56);
-            powerButton.rotation.x = Math.PI / 2;
-            copyingMachine.add(powerButton);
-
-            // Position in the middle of the meadow
-            copyingMachine.position.set(0, 0, 0);
-
-            scene.add(copyingMachine);
-            return copyingMachine;
+                    scene.add(copyingMachine);
+                    console.log('Copying machine loaded successfully!');
+                },
+                function (xhr) {
+                    // Progress callback
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                function (error) {
+                    // Error callback
+                    console.error('Error loading copying machine model:', error);
+                    // Fallback: create a simple placeholder box
+                    const fallbackGeometry = new THREE.BoxGeometry(4, 2, 3);
+                    const fallbackMaterial = new THREE.MeshLambertMaterial({ color: 0xE0E0E0 });
+                    copyingMachine = new THREE.Mesh(fallbackGeometry, fallbackMaterial);
+                    copyingMachine.position.set(0, 1, 0);
+                    copyingMachine.castShadow = true;
+                    scene.add(copyingMachine);
+                    console.log('Using fallback copying machine');
+                }
+            );
         }
-        const copyingMachine = createCopyingMachine();
+        loadCopyingMachine();
 
         // Add hay bales
         function createHayBales() {
