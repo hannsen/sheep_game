@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCID-5-SPQ — Screening-Persönlichkeitsfragebogen</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #fff; --ink: #1f2733; --muted: #6b7686;
+    --accent: #3b6ef5; --accent-soft: #e7eefe; --border: #e2e6ee;
+    --ja: #2e9e6b; --ja-soft: #e4f5ec; --nein: #6b7686;
+    --hit: #d9534f; --hit-soft: #fbe6e5;
+    --shadow: 0 6px 24px rgba(31,39,51,.08);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); line-height:1.5; }
+  .wrap { max-width: 880px; margin:0 auto; padding: 28px 18px 90px; }
+
+  header.hero { background:var(--card); border:1px solid var(--border); border-radius:16px;
+                padding:26px 26px 22px; box-shadow:var(--shadow); margin-bottom:20px; }
+  h1 { margin:0 0 4px; font-size:1.55rem; }
+  .sub { color:var(--muted); margin:0 0 14px; }
+  .disclaimer { background:#fff8e8; border:1px solid #f0dca0; color:#7a5c10;
+                border-radius:10px; padding:12px 14px; font-size:.9rem; }
+
+  /* Import */
+  .import { background:var(--card); border:1px solid var(--border); border-radius:14px;
+            padding:18px 20px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .import h2 { font-size:1.05rem; margin:0 0 6px; }
+  .import summary { cursor:pointer; font-weight:600; color:var(--accent); }
+  .import .status { font-size:.9rem; margin:8px 0; }
+  .status .ok { color:var(--ja); font-weight:700; }
+  .status .warn { color:var(--hit); font-weight:700; }
+  textarea { width:100%; min-height:160px; border:1px solid var(--border); border-radius:10px;
+             padding:10px 12px; font:inherit; font-size:.9rem; resize:vertical; }
+  .hint { color:var(--muted); font-size:.82rem; margin:6px 0 10px; }
+
+  /* Progress */
+  .progress-bar { position:sticky; top:0; z-index:5; background:var(--bg); padding:10px 0 6px; }
+  .progress-track { height:8px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .progress-fill { height:100%; width:0; background:var(--accent); transition:width .25s; }
+  .progress-label { font-size:.82rem; color:var(--muted); margin-top:6px; }
+
+  .group { margin-top:26px; }
+  .group-title { font-size:1.08rem; color:var(--accent); margin:0 0 2px;
+                 display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .group-meta { font-size:.8rem; color:var(--muted); font-weight:600; white-space:nowrap; }
+  .section-note { background:#fff8e8; border:1px solid #f0dca0; color:#7a5c10;
+                  border-radius:9px; padding:8px 12px; margin-top:10px; font-size:.85rem; }
+
+  .q { background:var(--card); border:1px solid var(--border); border-radius:11px;
+       padding:12px 14px; margin-top:10px; box-shadow:var(--shadow);
+       display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+  .q.flag { border-color:var(--hit); }
+  .q-num { font-weight:700; color:var(--muted); min-width:30px; }
+  .q-text { flex:1 1 320px; font-weight:500; }
+  .q-text.missing { color:var(--hit); font-style:italic; font-weight:400; }
+  .opts { display:flex; gap:8px; }
+  .opts label { border:1px solid var(--border); border-radius:9px; padding:7px 16px;
+                cursor:pointer; font-weight:600; font-size:.9rem; color:var(--muted);
+                display:flex; align-items:center; gap:6px; transition:all .12s; }
+  .opts label:hover { border-color:var(--accent); }
+  .opts input { accent-color:var(--accent); }
+  .opts label:has(input[value="ja"]:checked)   { background:var(--ja-soft);  border-color:var(--ja);  color:var(--ja); }
+  .opts label:has(input[value="nein"]:checked) { background:#eef0f4; border-color:var(--nein); color:var(--ink); }
+
+  .actions { margin-top:26px; display:flex; gap:12px; flex-wrap:wrap; }
+  button { font:inherit; font-weight:600; border:none; border-radius:10px;
+           padding:12px 22px; cursor:pointer; transition:transform .08s, background .15s; }
+  button:active { transform:translateY(1px); }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#2f5be0; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:hover { color:var(--ink); }
+
+  /* Results */
+  #results { display:none; }
+  .result-card { background:var(--card); border:1px solid var(--border); border-radius:16px;
+                 padding:24px; box-shadow:var(--shadow); }
+  table.eval { width:100%; border-collapse:collapse; font-size:.88rem; margin-top:8px; }
+  table.eval th, table.eval td { padding:9px 8px; border-bottom:1px solid var(--border); text-align:left; }
+  table.eval th { color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.02em; }
+  table.eval td.c, table.eval th.c { text-align:center; }
+  tr.met { background:var(--hit-soft); }
+  .badge { display:inline-block; padding:2px 10px; border-radius:99px; font-weight:700; font-size:.8rem; }
+  .badge.ja  { background:var(--hit-soft); color:var(--hit); }
+  .badge.nein{ background:var(--ja-soft);  color:var(--ja); }
+  .summary-note { margin-top:18px; padding:14px 16px; border-radius:10px; background:var(--accent-soft);
+                  font-size:.92rem; }
+  .footnote { color:var(--muted); font-size:.82rem; margin-top:20px; }
+  @media (max-width:560px){ .q-num{min-width:24px} table.eval th:nth-child(4),table.eval td:nth-child(4){display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>SCID-5-SPQ</h1>
+    <p class="sub">Screening-Persönlichkeitsfragebogen für DSM-5 &middot; 106 Items, Ja/Nein</p>
+    <p style="margin:0 0 14px">
+      Die folgenden Fragen beziehen sich darauf, was für eine Person Sie im Allgemeinen sind – d. h. wie Sie sich
+      in den vergangenen Jahren typischerweise gefühlt oder verhalten haben. Wählen Sie <strong>„JA"</strong>, wenn
+      die Frage völlig oder größtenteils auf Sie zutrifft, und <strong>„NEIN"</strong>, sofern die Frage nicht auf
+      Sie zutrifft. Falls Sie eine Frage nicht verstehen, lassen Sie diese aus.
+    </p>
+    <div class="disclaimer">
+      <strong>Hinweis:</strong> Der SCID-5-SPQ ist ein <strong>Screening-Instrument</strong> und kein
+      eigenständiges Diagnoseinstrument. Ein erreichtes Kriterium bedeutet keine Diagnose, sondern
+      lediglich, dass eine vertiefte Abklärung (SCID-5-PD) sinnvoll sein kann. Anwendung und Interpretation
+      gehören in fachkundige Hände.
+    </div>
+  </header>
+
+  <!-- IMPORT der Fragetexte -->
+  <div class="import">
+    <details id="importBox">
+      <summary>Fragetexte importieren / bearbeiten</summary>
+      <div class="status" id="importStatus"></div>
+      <p class="hint">
+        Die Fragetexte sind bereits eingebaut. Hier kannst du sie bei Bedarf <strong>korrigieren oder ersetzen</strong> —
+        eine Frage pro Zeile, in der Reihenfolge 1–106. Führende Nummerierungen wie „1." werden automatisch entfernt.
+        Änderungen werden lokal im Browser gespeichert (localStorage).
+      </p>
+      <textarea id="importArea" placeholder="1. Erste Frage…&#10;2. Zweite Frage…&#10;…"></textarea>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" class="btn-primary" id="importBtn">Fragen laden &amp; speichern</button>
+        <button type="button" class="btn-ghost" id="clearBtn">Gespeicherte Fragen löschen</button>
+      </div>
+    </details>
+  </div>
+
+  <!-- FRAGEBOGEN -->
+  <section id="quiz">
+    <div class="progress-bar">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0 von 106 beantwortet</div>
+    </div>
+    <form id="spqForm"></form>
+    <div class="actions">
+      <button type="button" class="btn-primary" id="evaluateBtn">Auswerten</button>
+      <button type="button" class="btn-ghost" id="resetBtn">Antworten zurücksetzen</button>
+    </div>
+  </section>
+
+  <!-- ERGEBNIS -->
+  <section id="results">
+    <div class="result-card">
+      <h2 style="margin-top:0">Auswertung</h2>
+      <table class="eval">
+        <thead>
+          <tr>
+            <th>Nr.</th><th>Persönlichkeitsstörung</th>
+            <th class="c">Items</th><th class="c">Item-Nr.</th><th class="c">Kriterium</th>
+            <th class="c">Σ Ja</th><th class="c">Σ Nein</th><th class="c">Ausl.</th><th class="c">Erfüllt</th>
+          </tr>
+        </thead>
+        <tbody id="evalBody"></tbody>
+      </table>
+      <div class="summary-note" id="summaryNote"></div>
+      <p class="footnote">
+        „Erfüllt = Ja" bedeutet: die Anzahl der Ja-Antworten in diesem Bereich erreicht oder übersteigt den
+        Kriteriumswert. Auslassungen = nicht beantwortete Items. Dies ist eine Screening-Hilfe, keine Diagnose.
+      </p>
+      <div class="actions">
+        <button type="button" class="btn-primary" id="restartBtn">Erneut ausfüllen</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ====== Struktur & Auswertungslogik (aus SCID-5-SPQ Auswertungshilfe) ======
+const DISORDERS = [
+  { nr:1,  key:"avoid",     name:"Vermeidend-selbstunsichere Persönlichkeitsstörung", from:1,  to:7,   threshold:4, criteria:7 },
+  { nr:2,  key:"depend",    name:"Dependente Persönlichkeitsstörung",                 from:8,  to:15,  threshold:5, criteria:8 },
+  { nr:3,  key:"obsess",    name:"Zwanghafte Persönlichkeitsstörung",                 from:16, to:24,  threshold:4, criteria:8 },
+  { nr:4,  key:"paranoid",  name:"Paranoide Persönlichkeitsstörung",                  from:25, to:32,  threshold:4, criteria:7 },
+  { nr:5,  key:"schizotyp", name:"Schizotype Persönlichkeitsstörung",                 from:33, to:45,  threshold:5, criteria:9 },
+  { nr:6,  key:"schizoid",  name:"Schizoide Persönlichkeitsstörung",                  from:46, to:51,  threshold:4, criteria:7 },
+  { nr:7,  key:"histrion",  name:"Histrionische Persönlichkeitsstörung",              from:52, to:59,  threshold:5, criteria:8 },
+  { nr:8,  key:"narciss",   name:"Narzisstische Persönlichkeitsstörung",              from:60, to:76,  threshold:5, criteria:9 },
+  { nr:9,  key:"border",    name:"Borderline-Persönlichkeitsstörung",                 from:77, to:91,  threshold:5, criteria:9 },
+  { nr:10, key:"antisoc",   name:"Antisoziale Persönlichkeitsstörung",                from:92, to:106, threshold:3, criteria:7 },
+];
+const TOTAL_ITEMS = 106;
+const STORAGE_KEY = "scid5spq_questions_v1";
+
+// ====== Eingebaute Fragetexte (aus der SCID-5-SPQ-PDF, per OCR übernommen) ======
+const DEFAULT_QUESTIONS = [
+  "Haben Sie berufliche Tätigkeiten oder Aufgaben vermieden, bei denen man mit vielen Menschen zu tun hat?",
+  "Vermeiden Sie es, sich mit anderen Menschen anzufreunden, es sei denn, Sie sind sich ganz sicher, dass diese Sie wirklich mögen?",
+  "Fällt es Ihnen schwer, anderen Menschen gegenüber „offen“ zu sein, selbst wenn diese Ihnen nahestehen?",
+  "Befürchten Sie oft, von anderen Menschen kritisiert oder abgelehnt zu werden?",
+  "Sind Sie gewöhnlich zurückhaltend und schweigsam, wenn Sie neue Leute kennenlernen?",
+  "Glauben Sie, dass Sie nicht so gut, so klug oder so attraktiv sind wie die meisten anderen Menschen?",
+  "Haben Sie Angst davor, Dinge zu tun, die anspruchsvoll sind, oder neue Dinge auszuprobieren?",
+  "Fällt es Ihnen ohne den Ratschlag oder die Bestätigung von anderen schwer, alltägliche Entscheidungen zu treffen, wie zum Beispiel was Sie anziehen oder was Sie in einem Restaurant bestellen?",
+  "Sind Sie bei der Regelung wichtiger Lebensbereiche, wie zum Beispiel Geldangelegenheiten, Kindererziehung oder Wohnangelegenheiten von anderen Menschen abhängig?",
+  "Fällt es Ihnen schwer, anderen zu widersprechen, selbst wenn Sie denken, dass diese Unrecht haben?",
+  "Fällt es Ihnen schwer, Unternehmungen allein zu beginnen oder Dinge allein zu tun?",
+  "Ist es für Sie so wichtig, dass andere sich um Sie kümmern, dass Sie dazu bereit sind, unangenehme oder unangemessene Dinge für diese zu tun?",
+  "Fühlen Sie sich im Allgemeinen unwohl, wenn Sie allein sind?",
+  "Wenn eine enge Beziehung endet, haben Sie dann das Gefühl, schnell jemand anderen finden zu müssen, der sich um Sie kümmert?",
+  "Machen Sie sich oft Sorgen, allein gelassen zu werden und für sich selbst sorgen zu müssen?",
+  "Sind Sie jemand, der viel Wert auf Details, Ordnung und Organisation legt oder Listen und Zeitpläne anlegt?",
+  "Haben Sie Schwierigkeiten, Dinge zu Ende zu bringen, weil Sie sehr viel Zeit darauf verwenden, alles genau und richtig zu machen?",
+  "Widmen Sie sich gänzlich Ihrer Arbeit oder streben sehr danach, produktiv zu sein?",
+  "Haben Sie sehr hohe Maßstäbe dafür, was richtig und was falsch ist?",
+  "Fällt es Ihnen schwer, Dinge wegzuwerfen, weil Sie sie eines Tages vielleicht doch noch einmal gebrauchen könnten?",
+  "Fällt es Ihnen schwer, mit anderen zusammenzuarbeiten oder andere zu bitten, etwas für Sie zu tun, wenn diese die Dinge nicht genau nach Ihren Vorstellungen erledigen?",
+  "Fällt es Ihnen schwer, Geld für sich selbst und andere auszugeben?",
+  "Wenn Sie einmal etwas geplant haben, fällt es Ihnen dann schwer, diesen Plan zu ändern?",
+  "Hat man Ihnen schon einmal gesagt, Sie seien eigensinnig oder stur?",
+  "Haben Sie oft das Gefühl, dass andere Menschen Sie ausnutzen, Sie verletzen oder anlügen?",
+  "Sind Sie eine sehr vorsichtige Person, die anderen Menschen kaum etwas anvertraut?",
+  "Glauben Sie, dass es am besten ist, andere nicht viel über Sie wissen zu lassen, weil diese das gegen Sie verwenden könnten?",
+  "Haben Sie oft das Gefühl, dass andere Menschen Sie bedrohen oder beleidigen durch das, was diese sagen oder tun?",
+  "Sind Sie sehr nachtragend oder brauchen lange, bis Sie jemandem verzeihen, der Sie beleidigt oder gekränkt hat?",
+  "Gibt es viele Leute, denen Sie nicht verzeihen können, weil diese vor langer Zeit etwas gesagt oder getan haben?",
+  "Werden Sie schnell wütend oder reagieren Sie aggressiv, wenn Sie kritisiert oder beleidigt werden?",
+  "Haben Sie manchmal den Verdacht gehabt, Ihr Partner/Ihre Partnerin sei untreu?",
+  "Wenn Sie in der Öffentlichkeit Leute sehen, die sich miteinander unterhalten, denken Sie dann häufig, dass man über Sie redet?",
+  "Haben Sie, wenn Sie unter Menschen sind, häufig das Gefühl, dass Sie beobachtet oder angestarrt werden?",
+  "Haben Sie oft das Gefühl, dass Textzeilen aus einem Lied oder etwas in einem Film oder im Fernsehen eine besondere Bedeutung speziell für Sie haben?",
+  "Sind Sie ein abergläubischer Mensch?",
+  "Hatten Sie jemals den Eindruck, dass Sie Dinge geschehen lassen können, einfach indem Sie sich es wünschen oder daran denken?",
+  "Hatten Sie persönliche Erfahrungen mit übernatürlichen Dingen?",
+  "Glauben Sie, einen „sechsten Sinn“ zu haben, so dass Sie Dinge im Voraus wissen und vorhersagen können?",
+  "Haben Sie oft das Gefühl, dass alles unwirklich erscheint, dass Sie losgelöst von Körper oder Geist sind oder dass Sie Ihre eigenen Gedanken oder Bewegungen von außen beobachten?",
+  "Sehen Sie oft Dinge, die andere Menschen nicht sehen?",
+  "Hören Sie oft eine Stimme, die sanft Ihren Namen spricht?",
+  "Haben Sie manchmal das Gefühl, dass eine Person oder Kraft Sie umgibt, obwohl Sie niemanden sehen können?",
+  "Gibt es außerhalb Ihrer Familie nur sehr wenige Menschen, zu denen Sie eine wirklich enge Beziehung haben?",
+  "Sind Sie oft nervös und ängstlich, wenn Sie unter Menschen sind, die Sie nicht gut kennen?",
+  "Ist es Ihnen NICHT wichtig, Freunde oder eine Partnerbeziehung zu haben oder mit Ihrer Familie zusammen zu sein?",
+  "Würden Sie fast immer Dinge lieber allein als mit anderen zusammen machen?",
+  "Haben Sie wenig oder kein Interesse an sexuellen Erfahrungen mit einem anderen Menschen?",
+  "Gibt es nur ganz wenige Dinge, die Ihnen wirklich Freude bereiten?",
+  "Ist es Ihnen gleichgültig, was andere über Sie denken?",
+  "Empfinden Sie selten intensive Gefühle, wie sehr wütend oder sehr freudig zu sein?",
+  "Stehen Sie gern im Mittelpunkt?",
+  "Neigen Sie dazu, oft zu flirten?",
+  "Ertappen Sie sich oft dabei, dass Sie andere „anmachen“?",
+  "Ziehen Sie die Aufmerksamkeit anderer gern durch die Art, wie Sie sich kleiden oder aussehen, auf sich?",
+  "Neigen Sie dazu, sehr dramatisch aufzutreten oder zu sprechen?",
+  "Sind Sie emotionaler als die meisten anderen Menschen, z. B. schluchzen Sie, wenn Sie eine traurige Geschichte hören?",
+  "Ändern Sie oft Ihre Meinung über Dinge in Abhängigkeit davon, mit welchen Menschen Sie gerade zusammen sind oder was Sie gerade gelesen oder im Fernsehen gesehen haben?",
+  "Fühlen Sie sich mit fast allen Menschen gut befreundet, sogar mit Dienstleistern, wie Ihrem Klempner, Ihrem Automechaniker oder Ihrem Arzt?",
+  "Sind Sie wichtiger, talentierter oder erfolgreicher als die meisten anderen Menschen?",
+  "Haben Ihnen andere Menschen schon einmal gesagt, dass Sie eine zu hohe Meinung von sich selbst hätten?",
+  "Denken Sie oft an die Macht, den Ruhm oder die Anerkennung, die Sie eines Tages haben werden?",
+  "Denken Sie oft an die ideale Liebe, die Sie eines Tages finden werden?",
+  "Wenn Sie ein Problem haben, bestehen Sie dann fast immer darauf, den höchsten Vorgesetzten zu sprechen?",
+  "Versuchen Sie, Zeit mit Menschen zu verbringen, die wichtig oder einflussreich sind?",
+  "Ist es Ihnen wichtig, dass andere Menschen Sie beachten oder in irgendeiner Weise bewundern?",
+  "Halten Sie sich für jemanden, der eine Sonderbehandlung verdient oder für den andere Menschen automatisch das tun sollten, was Sie wollen?",
+  "Stellen Sie Ihre eigenen Bedürfnisse oftmals über die anderer Menschen?",
+  "Haben sich andere beschwert, dass Sie Menschen ausnutzen?",
+  "Denken Sie generell, dass die Bedürfnisse oder Gefühle anderer Menschen nicht Ihr Problem sind?",
+  "Halten Sie die Probleme anderer oft für langweilig?",
+  "Haben sich andere bei Ihnen darüber beschwert, dass Sie ihnen nicht zuhören oder Ihnen ihre Gefühle egal sind?",
+  "Wenn Sie jemanden Erfolgreiches sehen, haben Sie dann das Gefühl, diesen Erfolg mehr zu verdienen als der oder die andere?",
+  "Haben Sie den Eindruck, dass andere oft neidisch auf Sie sind?",
+  "Glauben Sie, dass nur sehr wenige Menschen Ihre Zeit und Ihre Aufmerksamkeit verdienen?",
+  "Haben sich andere Menschen darüber beschwert, dass Sie sich überheblich oder arrogant verhalten?",
+  "Geraten Sie leicht außer sich, wenn Sie denken, dass jemand, der Ihnen viel bedeutet, Sie verlässt?",
+  "Sind Ihre Beziehungen zu Menschen, an denen Ihnen viel liegt, häufig von einem extremen Auf und Ab gekennzeichnet?",
+  "Ändert sich Ihr Gefühl darüber, wer Sie sind, häufig drastisch?",
+  "Sind Sie unterschiedlich im Kontakt mit verschiedenen Menschen oder in verschiedenen Situationen, so dass Sie manchmal nicht wissen, wer Sie wirklich sind?",
+  "Haben Sie schon oft plötzlich zum Beispiel Ihre Zielsetzungen, Ihre beruflichen Pläne oder religiösen Anschauungen geändert?",
+  "Haben Sie schon oft plötzlich Ihr freundschaftliches Umfeld oder Ihre sexuelle Identität geändert?",
+  "Haben Sie oft impulsiv gehandelt?",
+  "Haben Sie jemals versucht, sich selbst zu verletzen oder umzubringen, oder haben das angedroht?",
+  "Haben Sie sich jemals absichtlich geschnitten, Brandwunden zugefügt oder geritzt?",
+  "Ändert sich Ihre Stimmung oft innerhalb eines Tages, je nachdem, was gerade in Ihrem Leben passiert?",
+  "Fühlen Sie sich oft innerlich leer?",
+  "Haben Sie oft Wutausbrüche oder werden so ärgerlich, dass Sie die Kontrolle verlieren?",
+  "Schlagen Sie andere Personen, wenn Sie wütend sind, oder werfen mit Dingen nach ihnen?",
+  "Können selbst Kleinigkeiten Sie sehr wütend machen?",
+  "Werden Sie, wenn Sie sich sehr aufregen, anderen gegenüber argwöhnisch, oder fühlen sich losgelöst von Ihrem Körper oder empfinden die Dinge als unwirklich?",
+  "Haben Sie vor dem Alter von 15 Jahren andere Kinder schikaniert, bedroht oder eingeschüchtert?",
+  "Haben Sie vor dem Alter von 15 Jahren Schlägereien angefangen?",
+  "Haben Sie vor dem Alter von 15 Jahren jemanden mit einer Waffe verletzt oder bedroht, wie z. B. mit einem Schlagstock, einem Ziegelstein, einer zerbrochenen Flasche, einem Messer oder einer Schusswaffe?",
+  "Haben Sie vor dem Alter von 15 Jahren jemandem grausame Dinge angetan, die ihm/ihr körperliche Schmerzen oder Leid zufügten?",
+  "Haben Sie vor dem Alter von 15 Jahren Tiere absichtlich gequält?",
+  "Haben Sie vor dem Alter von 15 Jahren jemanden ausgeraubt, überfallen oder haben jemandem etwas gewaltsam weggenommen, indem Sie ihn/sie bedroht haben?",
+  "Haben Sie vor dem Alter von 15 Jahren jemanden zu sexuellen Handlungen gezwungen?",
+  "Haben Sie vor dem Alter von 15 Jahren absichtlich Feuer gelegt?",
+  "Haben Sie vor dem Alter von 15 Jahren vorsätzlich Dinge zerstört, die nicht Ihnen gehörten?",
+  "Sind Sie vor dem Alter von 15 Jahren in Häuser, andere Gebäude oder Autos eingebrochen?",
+  "Haben Sie vor dem Alter von 15 Jahren häufig gelogen oder andere reingelegt, um etwas zu bekommen, was Sie wollten, oder um etwas zu umgehen, was Sie nicht tun wollten?",
+  "Haben Sie vor dem Alter von 15 Jahren Ladendiebstahl begangen, jemanden bestohlen oder eine Unterschrift gefälscht, um an Geld zu kommen?",
+  "Sind Sie vor dem Alter von 15 Jahren von zu Hause weggelaufen und über Nacht weggeblieben?",
+  "Sind Sie vor dem Alter von 13 Jahren abends oft wesentlich später nach Hause gekommen, als Sie durften?",
+  "Haben Sie vor dem Alter von 13 Jahren oft die Schule geschwänzt?"
+];
+
+// Abschnitts-Hinweise, die direkt vor einer bestimmten Frage angezeigt werden
+const NOTES = {
+  92:  "Die folgenden Fragen beziehen sich auf Dinge, die Sie getan haben, bevor Sie 15 Jahre alt waren.",
+  105: "Die folgenden zwei Fragen beziehen sich auf Dinge, die Sie getan haben, bevor Sie 13 Jahre alt waren."
+};
+
+// ====== Fragetexte laden ======
+let QUESTIONS = loadQuestions(); // Array index 1..106 (index 0 ungenutzt)
+
+function loadQuestions() {
+  const arr = new Array(TOTAL_ITEMS + 1).fill("");
+  // 1) ggf. korrigierte Texte aus localStorage (haben Vorrang)
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      let has = false;
+      for (let i = 1; i <= TOTAL_ITEMS; i++) if (saved[i]) { arr[i] = saved[i]; has = true; }
+      if (has) return arr;
+    }
+  } catch (e) {}
+  // 2) optionale externe Datei (window.SPQ_QUESTIONS), sonst eingebaute Texte
+  const ext = (typeof window !== "undefined" && window.SPQ_QUESTIONS && window.SPQ_QUESTIONS.length)
+              ? window.SPQ_QUESTIONS : DEFAULT_QUESTIONS;
+  for (let i = 1; i <= TOTAL_ITEMS; i++) arr[i] = (ext[i - 1] || "").trim();
+  return arr;
+}
+function countLoaded() {
+  let n = 0;
+  for (let i = 1; i <= TOTAL_ITEMS; i++) if (QUESTIONS[i] && QUESTIONS[i].trim()) n++;
+  return n;
+}
+
+// ====== Import ======
+const importArea   = document.getElementById("importArea");
+const importStatus = document.getElementById("importStatus");
+const importBox    = document.getElementById("importBox");
+
+function refreshImportStatus() {
+  const n = countLoaded();
+  if (n === TOTAL_ITEMS) {
+    importStatus.innerHTML = `<span class="ok">✓ Alle ${TOTAL_ITEMS} Fragetexte geladen.</span>`;
+  } else if (n > 0) {
+    importStatus.innerHTML = `<span class="warn">${n} von ${TOTAL_ITEMS} Fragetexten geladen — es fehlen noch ${TOTAL_ITEMS - n}.</span>`;
+    importBox.open = true;
+  } else {
+    importStatus.innerHTML = `<span class="warn">Noch keine Fragetexte geladen.</span> Bitte unten einfügen.`;
+    importBox.open = true;
+  }
+}
+
+document.getElementById("importBtn").addEventListener("click", () => {
+  const lines = importArea.value
+    .split(/\r?\n/)
+    .map(l => l.replace(/^\s*\d{1,3}\s*[\.\)\-:]\s*/, "").trim()) // führende Nummer entfernen
+    .filter(l => l.length > 0);
+  if (!lines.length) { alert("Keine Zeilen erkannt. Bitte eine Frage pro Zeile einfügen."); return; }
+  if (lines.length > TOTAL_ITEMS) {
+    if (!confirm(`Es wurden ${lines.length} Zeilen erkannt (erwartet: ${TOTAL_ITEMS}). Nur die ersten ${TOTAL_ITEMS} werden verwendet. Fortfahren?`)) return;
+  }
+  for (let i = 1; i <= TOTAL_ITEMS; i++) QUESTIONS[i] = lines[i - 1] || "";
+  const toSave = {};
+  for (let i = 1; i <= TOTAL_ITEMS; i++) if (QUESTIONS[i]) toSave[i] = QUESTIONS[i];
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave)); } catch (e) { alert("Speichern fehlgeschlagen (localStorage)."); }
+  buildForm();
+  refreshImportStatus();
+  if (countLoaded() === TOTAL_ITEMS) importBox.open = false;
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  if (!confirm("Gespeicherte Fragetexte wirklich löschen?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  QUESTIONS = loadQuestions();
+  importArea.value = "";
+  buildForm();
+  refreshImportStatus();
+});
+
+// ====== Fragebogen aufbauen ======
+const form = document.getElementById("spqForm");
+
+function buildForm() {
+  form.innerHTML = "";
+  DISORDERS.forEach(d => {
+    const group = document.createElement("div");
+    group.className = "group";
+
+    const title = document.createElement("div");
+    title.className = "group-title";
+    title.innerHTML = `<span>${d.nr}. ${d.name}</span>
+                       <span class="group-meta">Items ${d.from}–${d.to} · Kriterium ${d.threshold} von ${d.criteria}</span>`;
+    group.appendChild(title);
+
+    for (let n = d.from; n <= d.to; n++) {
+      if (NOTES[n]) {
+        const note = document.createElement("div");
+        note.className = "section-note";
+        note.textContent = NOTES[n];
+        group.appendChild(note);
+      }
+      const text = (QUESTIONS[n] || "").trim();
+      const q = document.createElement("div");
+      q.className = "q";
+      q.dataset.n = n;
+      q.innerHTML =
+        `<span class="q-num">${n}.</span>
+         <span class="q-text ${text ? "" : "missing"}">${text ? escapeHtml(text) : "(Frage " + n + " — bitte importieren)"}</span>
+         <span class="opts">
+           <label><input type="radio" name="q${n}" value="ja">Ja</label>
+           <label><input type="radio" name="q${n}" value="nein">Nein</label>
+         </span>`;
+      group.appendChild(q);
+    }
+    form.appendChild(group);
+  });
+  updateProgress();
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+// ====== Fortschritt ======
+const progressFill = document.getElementById("progressFill");
+const progressLabel = document.getElementById("progressLabel");
+function answeredCount(){ return new Set([...form.querySelectorAll("input:checked")].map(i=>i.name)).size; }
+function updateProgress(){
+  const n = answeredCount();
+  progressFill.style.width = Math.round(n/TOTAL_ITEMS*100) + "%";
+  progressLabel.textContent = `${n} von ${TOTAL_ITEMS} beantwortet`;
+}
+form.addEventListener("change", updateProgress);
+
+// ====== Auswertung ======
+document.getElementById("evaluateBtn").addEventListener("click", () => {
+  const tbody = document.getElementById("evalBody");
+  tbody.innerHTML = "";
+  const met = [];
+
+  DISORDERS.forEach(d => {
+    let ja = 0, nein = 0;
+    for (let n = d.from; n <= d.to; n++) {
+      const sel = form.querySelector(`input[name="q${n}"]:checked`);
+      if (sel) { sel.value === "ja" ? ja++ : nein++; }
+    }
+    const items = d.to - d.from + 1;
+    const ausl = items - ja - nein;
+    const erfuellt = ja >= d.threshold;
+    if (erfuellt) met.push(d.name);
+
+    const tr = document.createElement("tr");
+    if (erfuellt) tr.className = "met";
+    tr.innerHTML =
+      `<td>${d.nr}</td>
+       <td>${d.name}</td>
+       <td class="c">${items}</td>
+       <td class="c">${d.from}–${d.to}</td>
+       <td class="c">${d.threshold} von ${d.criteria}</td>
+       <td class="c">${ja}</td>
+       <td class="c">${nein}</td>
+       <td class="c">${ausl}</td>
+       <td class="c"><span class="badge ${erfuellt ? "ja" : "nein"}">${erfuellt ? "Ja" : "Nein"}</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Zeile 11: Nicht näher bezeichnete PS (klinische Beurteilung)
+  const tr11 = document.createElement("tr");
+  tr11.innerHTML =
+    `<td>11</td><td>Nicht näher bezeichnete Persönlichkeitsstörung</td>
+     <td class="c">—</td><td class="c">—</td><td class="c">—</td>
+     <td class="c">—</td><td class="c">—</td><td class="c">—</td>
+     <td class="c" style="color:var(--muted)">klin. Beurteilung</td>`;
+  tbody.appendChild(tr11);
+
+  const note = document.getElementById("summaryNote");
+  if (met.length) {
+    note.innerHTML = `<strong>Kriterium erreicht bei ${met.length} Bereich(en):</strong><br>` +
+      met.map(m => "• " + m).join("<br>") +
+      `<br><br>Eine vertiefte diagnostische Abklärung (z. B. SCID-5-PD) kann hier sinnvoll sein.`;
+  } else {
+    note.innerHTML = `In keinem Bereich wurde der Kriteriumswert erreicht.`;
+  }
+
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("results").style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// ====== Reset / Neustart ======
+function resetAnswers(){
+  form.reset();
+  form.querySelectorAll(".q").forEach(c => c.classList.remove("flag"));
+  updateProgress();
+}
+document.getElementById("resetBtn").addEventListener("click", resetAnswers);
+document.getElementById("restartBtn").addEventListener("click", () => {
+  resetAnswers();
+  document.getElementById("results").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// ====== Init ======
+buildForm();
+refreshImportStatus();
+</script>
+</body>
+</html>
